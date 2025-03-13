@@ -1,0 +1,178 @@
+version: "3"
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports:
+      - 9000:9000
+      - 9870:9870
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode1
+    restart: always
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode2
+    restart: always
+    volumes:
+      - hadoop_datanode2:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+  
+  datanode3:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode3
+    restart: always
+    volumes:
+      - hadoop_datanode3:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
+
+  spark-master:
+    image: bde2020/spark-master:3.0.0-hadoop3.2
+    container_name: spark-master
+    depends_on:
+      - namenode
+      - datanode1 
+      - datanode2
+      - datanode3
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+      - "5000:5000"
+    environment:
+      - INIT_DAEMON_STEP=setup_spark
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+
+  spark-worker-a:
+    image: bde2020/spark-worker:3.0.0-hadoop3.2
+    container_name: spark-worker-a
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      # - SPARK_WORKER_CORES=5
+      # - SPARK_WORKER_MEMORY=1G
+      # - SPARK_DRIVER_MEMORY=1G
+      
+  # spark-worker-b:
+  #   image: bde2020/spark-worker:3.0.0-hadoop3.2
+  #   container_name: spark-worker-b
+  #   depends_on:
+  #     - spark-master
+  #   ports:
+  #     - "8082:8082"
+  #   environment:
+  #     - "SPARK_MASTER=spark://spark-master:7077"
+  #     - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+  #     - SPARK_WORKER_CORES=1
+  #     - SPARK_WORKER_MEMORY=1G
+  #     - SPARK_DRIVER_MEMORY=1G
+      
+  # spark-worker-c:
+  #   image: bde2020/spark-worker:3.0.0-hadoop3.2
+  #   container_name: spark-worker-c
+  #   depends_on:
+  #     - spark-master
+  #   ports:
+  #     - "8083:8083"
+  #   environment:
+  #     - "SPARK_MASTER=spark://spark-master:7077"
+  #     - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+  #     - SPARK_WORKER_CORES=1
+  #     - SPARK_WORKER_MEMORY=1G
+  #     - SPARK_DRIVER_MEMORY=1G
+      
+  spark-notebook:
+    image: bde2020/spark-notebook:2.1.0-hadoop2.8-hive
+    container_name: spark-notebook
+    env_file:
+      - ./hadoop.env
+    ports:
+      - 9001:9001
+    depends_on:
+      - spark-master
+      - namenode
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      
+  jupyter-notebook:
+    container_name: jupyter-notebook
+    image: dimajix/jupyter-spark:latest
+    command: notebook
+    # build:
+    #   context:  .
+    #   args:
+    #     http_proxy: ${http_proxy}
+    #     https_proxy: ${https_proxy}
+    env_file:
+      - ./hadoop.env
+    environment:
+      # - http_proxy=${http_proxy}
+      # - https_proxy=${https_proxy}
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    ports:
+      - 8888:8888
+      
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.1
+    container_name: elasticsearch
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.1
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      - elasticsearch
+
+
+
+volumes:
+  esdata:
+  hadoop_namenode:
+  hadoop_datanode1:
+  hadoop_datanode2:
+  hadoop_datanode3:
+
+
+networks:
+  es-net:
+    driver: bridge

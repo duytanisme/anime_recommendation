@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "verbose": {
+      "format": "[%(asctime)s] - [%(levelname)-10s] - %(module)-15s: %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "standard": {
+      "format": "[%(levelname)-10s] - %(module)-15s : %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "level": "DEBUG",
+      "class": "logging.StreamHandler",
+      "formatter": "standard"
+    },
+    "warning_console": {
+      "level": "WARNING",
+      "class": "logging.StreamHandler",
+      "formatter": "standard"
+    },
+    "file": {
+      "level": "INFO",
+      "class": "logging.FileHandler",
+      "filename": "../logs/logs.log",
+      "mode": "a",
+      "formatter": "verbose",
+      "encoding": "utf-8-sig"
+    }
+  },
+  "loggers": {
+    "default": {
+      "handlers": ["console", "file"],
+      "level": "INFO",
+      "propagate": false
+    },
+    "main": {
+      "handlers": ["warning_console", "file"],
+      "level": "INFO",
+      "propagate": false
+    }
+  },
+  "root": {
+    "handlers": ["console"],
+    "level": "ERROR"
+  }
+}
