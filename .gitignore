@@ -128,7 +128,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-# *.env # Temporary enable for hadoop configuration. Remove before commiting
+*.env
 *.venv
 env/
 venv/
