@@ -163,6 +163,42 @@ services:
     depends_on:
       - elasticsearch
 
+  airflow-webserver:
+    image: apache/airflow:2.0.0
+    container_name: airflow-webserver
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////root/airflow/airflow.db
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./airflow-dags:/opt/airflow/dags
+    networks:
+      - es-net
+
+  airflow-scheduler:
+    image: apache/airflow:2.0.0
+    container_name: airflow-scheduler
+    command: scheduler
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////root/airflow/airflow.db
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./airflow-dags:/opt/airflow/dags
+    networks:
+      - es-net
+
+  airflow-worker:
+    image: apache/airflow:2.0.0
+    container_name: airflow-worker
+    command: worker
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////root/airflow/airflow.db
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./airflow-dags:/opt/airflow/dags
+    networks:
+      - es-net
 
 
 volumes:
